@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>数据库一些知识总结</title>
+<style type="text/css">
+@import url("style.css");
+</style>
+</head>
+<body>
+<h2>数据库一些知识点(做个备忘录)</h2>
+<img src="mysql.jpg"/>
+<p>
+<h1>1.创建存储过程</h1>
+<p>
+delimiter ;;<br/>
+create procedure proce_info_seek_by_telephone(in seek_telephone varchar(12))<br/>
+begin<br/>
+select* from info where telephone=seek_telephone;<br/>
+end;;<br/>
+</p>
+<h1>2.创建存储函数</h1>
+<p>
+delimiter ;;<br/>
+ create function hello()<br/>
+ RETURNS TEXT<br/>
+ LANGUAGE SQL<br/>
+ BEGIN<br/>
+ RETURN "hello world,l am mysql.";<br/>
+ END;<br/>
+ ;;<br/>
+</p>
+<br/>
+<h1>3.查看特定存储过程</h1>
+<p>
+delimiter ;<br/>
+show create procedure proce_info_count;<br/>
+</p>
+<h1>4.查看特定的函数</h1>
+<p>
+delimiter ;<br/>
+show create function hello;<br/>
+</p>
+<h1>5.查看指定数据库的存储过程</h1>
+<p>
+delimiter ;<br/>
+show procedure status where db="students";<br/>
+</p>
+<h1>6.查看指定数据库的函数</h1>
+<p>
+delimiter ;<br/>
+show function status where db="students";<br/>
+<h1>7.查看所有的存储过程</h1>
+<p>
+delimiter ;<br//>
+show procedure status;<br/>
+</p>
+<h1>8.查看所有的函数</h1>
+<p>
+delimiter ;<br/>
+show function status;<br/>
+</p>
+<h1>9.执行存储过程(proce_info_count);</h1>
+<p>
+call proce_info_count;<br/>
+</p>
+<h1>10.执行函数（hello）</h1>
+<p>
+select hello();<br/>
+</p>
+<h1>11.游标使用（在存储过程中结合使用）</h1>
+<p>
+create procedure China()<br/>
+begin<br/>
+    declare n varchar(20);<br/>
+	declare total int default 0;<br/>
+	declare done int default false ;<br/>
+	declare cur cursor for select address from info where address="China";<br/>
+	declare continue HANDLER for not found set done=true;<br/>
+	set total=0;<br/>
+	
+	open  cur;<br/>
+	read_loop:loop<br/>
+	fetch cur into  n;<br/>
+	if done then<br/>
+	leave read_loop;<br/>
+	end if;<br/>
+	set total=total+1;<br/>
+	end loop;<br/>
+	close cur;<br/>
+	select total;<br/>
+END;;<br/>
+</p>
+<h1>12.写个函数（求大小）</h1>
+<p>
+DELIMITER @@<br/>
+DROP FUNCTION IF EXISTS GetMax@@<br/>
+CREATE FUNCTION GetMax(a INT(4),b INT(4))<br/>
+RETURNS INT(4)<br/>
+BEGIN<br/>
+DECLARE MAXNUM INT(4) DEFAULT 0;<br/>
+IF a>b THEN <br/>
+Set MAXNUM=a;<br/>
+ELSE <br/>
+SET MAXNUM=b;<br/>
+END IF;<br/>
+RETURN MAXNUM;<br/>
+END@@<br/>
+delimiter;<br/>
+
+
+delimiter @@<br/>
+drop function if exists  GetMin@@<br/>
+create function GetMin(a int(4),b int(4))<br/>
+returns int(4)<br/>
+begin<br/>
+if a>b then<br/>
+return b;<br/>
+else<br/>
+return a;<br/>
+end if;<br/>
+end@@<br/>
+delimiter ;<br/>
+</p>
+<h1>13.创建触发器（创建触发器不要搞成死循环）</h1>
+<p>
+delimiter @@ <br/>
+drop trigger if exists trigger_tab1_insert@@<br/>
+create trigger trigger_tab1_insert <br/>
+after insert on tab1<br/>
+for each row<br/>
+begin<br/>
+ insert into tab2 values(new.tab1_id); <br/>
+end@@<br/>
+delimiter ;<br/>
+//和上面的触发器形成死循环，不可以<br/>
+delimiter @@<br/>
+drop trigger if exists trigger_tab2_insert@@<br/>
+create trigger trigger_tab2_insert<br/>
+after insert on tab2<br/>
+for each row<br/>
+begin<br/>
+ insert into tab1 values(new.tab2_id); <br/>
+end@@<br/>
+delimiter ;<br/>
+</p>
+<h1>14.创建带有auto_increment的primary key</h1>
+<p>
+ drop table if exists tab3;<br/>
+ create table tab3(<br/>
+ id int primary key auto_increment,<br/>
+ name varchar(20) not null<br/>
+ );<br/>
+</p>
+<h1>15修改默认值</h1>
+<p>
+alter table tab3 alter column id set default 0;//id类型int<br/>
+</p>
+<h1>16.主键(Null 为NO)</h1>
+<p>
+alter table tab3 add id int not null primary key Auto_increment;<br/>
+</p>
+<h1>17.增加index索引，unique index</h1>
+<p>
+alter table tab3 add index(telephone);<br/>
+alter table tab3 add unique(name);<br/>
+</p>
+<h1>18.删除index，unique index索引，</h1>
+<p>
+alter table tab3 drop index telephone;<br/>
+或者<br/>
+drop index  telephone on tab3;<br/>
+</p>
+<h1>19.删除带有auto_increment主键(要先删除auto_increment,再删除主键）</h1>
+<p>
+alter table tab3 change id id int;<br/>
+
+alter table tab3 drop primary key;<br/>
+</p>
+<p>
+alter table tab3 add primary key(id);<br/>
+</p>
+<h1>21.查看tab3表的索引</h1>
+<p>
+show index from tab3;<br/>
+</p>
+<h1>22.批量插入数据（存储过程）</h1>
+<p>
+start transaction; //开启事务处理<br/>
+delimiter @@<br/>
+drop procedure if exists  insert_test_data@@<br/>
+create procedure insert_test_data()<br/>
+begin<br/>
+declare i bigint ;<br/>
+set i=15202962300;<br/>
+while i<15202972300 do<br/>
+	insert into info(name,telephone) value("mysql",i);<br/>
+	set i=i+1;<br/>
+end while;<br/>
+commit; //结束事务处理<br/>
+end@@<br/>
+delimiter ;<br/>
+</p>
+<h1>23.查看当前的autocommit属性值,命令：</h1>
+<p>
+show variables like "autocommit";<br/>
+</p>
+<h1>24.开启事务(特别注意，插入10000条记录，不启用：用时6分多钟。启用：用时0.48秒。大概相差700倍。（不同测试可能不同）</h1>
+<p>
+start transaction;<br/>
+
+（set autocommit=1;  会有autocommit    | ON）<br/>
+（set autocommit=0;  会有autocommit    	QA1| OFF）<br/>
+ set autocommit = 0 是关闭线程的自动提交模式。MYSQL默认是自动提交每个请求的。<br/>
+ (查看 show variables like "autocommit";  show variables like 'autocommit';  ）<br/>
+ </p>
+<h1>25.提交</h1>
+<p>
+commit;<br/>
+</p>
+<h1>26.回滚</h1>
+<p>
+rollback;<br/>
+</p>
+</p>
+<img src="mysql.jpg"/>
+
+</body>
+</html>
